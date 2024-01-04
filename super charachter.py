@@ -6,7 +6,7 @@ size = width, height = 1600, 1000
 screen = pygame.display.set_mode(size)
 FPS = 50
 clock = pygame.time.Clock()
-
+max_width = 0
 
 class Background(pygame.sprite.Sprite):  # Фонновое изображение
     def __init__(self, image_file, location):
@@ -37,6 +37,7 @@ def load_level(filename):
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
 
+    global max_width
     max_width = max(map(len, level_map))
 
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
@@ -74,6 +75,7 @@ class Player(pygame.sprite.Sprite):
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
+
 
 
 def generate_level(level):
