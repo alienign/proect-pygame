@@ -7,6 +7,7 @@ screen = pygame.display.set_mode(size)
 FPS = 50
 clock = pygame.time.Clock()
 
+
 def load_image(name, colorkey=None):
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
@@ -40,7 +41,7 @@ tile_images = {
     'down_back': load_image('down.png')
 }
 
-tile_width = tile_height = 50
+tile_width = tile_height = 200
 
 
 class Tile(pygame.sprite.Sprite):
