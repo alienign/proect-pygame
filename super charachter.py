@@ -4,8 +4,6 @@ import pygame
 
 size = width, height = 1600, 1000
 screen = pygame.display.set_mode(size)
-screen.fill((0, 0, 255))
-screen = pygame.display.set_mode(size)
 FPS = 50
 clock = pygame.time.Clock()
 
@@ -47,10 +45,11 @@ def load_level(filename):
 tile_images = {
     'earth': load_image('single_earth.png'),
     'upper_back': load_image('upper.png'),
-    'down_back': load_image('down.png')
+    'down_back': load_image('down.png'),
+    'platform': load_image('platform.png')
 }
 
-tile_width = tile_height = 200
+tile_width = tile_height = 100
 
 
 class Tile(pygame.sprite.Sprite):
@@ -88,6 +87,8 @@ def generate_level(level):
                 new_player = Player(x, y)
             elif level[y][x] == '_':
                 Tile('down_back', x, y)
+            elif level[y][x] == '=':
+                Tile('platform', x, y)
             elif level[y][x] == '+':
                 Tile('earth', x, y)
     # вернем игрока, а также размер поля в клетках
