@@ -68,8 +68,35 @@ class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
         self.image = player_image
+        self.pos_x = pos_x
+        self.pos_y = pos_y
         self.rect = self.image.get_rect().move(
             tile_width * pos_x + 15, tile_height * pos_y + 5)
+        self.move_x = 15
+        self.move_y = 15
+
+    def change(self, direc):
+        if direc == 1:
+            if tile_height * self.pos_y + self.move_y - 10 >= 0:
+                self.move_y -= 10
+                self.rect = self.image.get_rect().move(
+                    tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
+        if direc == 2:
+            if tile_width * self.pos_x + self.move_x + 10 < max_width * tile_width:
+                self.move_x += 10
+                self.rect = self.image.get_rect().move(
+                    tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
+        if direc == 3:
+            if tile_height * self.pos_y + self.move_y + 10 < max_width * tile_width:
+                self.move_y += 10
+                self.rect = self.image.get_rect().move(
+                    tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
+        if direc == 4:
+            if tile_width * self.pos_x + self.move_x - 10 >= 0:
+                self.move_x -= 10
+                self.rect = self.image.get_rect().move(
+                    tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
+
 
 
 all_sprites = pygame.sprite.Group()
@@ -104,13 +131,26 @@ def terminate():
 
 player, level_x, level_y = generate_level(load_level('level1.txt'))
 BackGround = Background(os.path.join('data', 'back.png'), [0, 0])
+up = False
+right = False
+down = False
+left = False
 while True:
     for event in pygame.event.get():
         screen.fill([255, 255, 255])
         screen.blit(BackGround.image, BackGround.rect)
         if event.type == pygame.QUIT:
             terminate()
-        tiles_group.draw(screen)
-        player_group.draw(screen)
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_UP]:
+        player.change(1)
+    if keys[pygame.K_RIGHT]:
+        player.change(2)
+    if keys[pygame.K_DOWN]:
+        player.change(3)
+    if keys[pygame.K_LEFT]:
+        player.change(4)
+    tiles_group.draw(screen)
+    player_group.draw(screen)
     pygame.display.flip()
     clock.tick(FPS)
