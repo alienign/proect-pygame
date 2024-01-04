@@ -2,10 +2,20 @@ import os
 import sys
 import pygame
 
-size = 1600, 1000
+size = width, height = 1600, 1000
+screen = pygame.display.set_mode(size)
+screen.fill((0, 0, 255))
 screen = pygame.display.set_mode(size)
 FPS = 50
 clock = pygame.time.Clock()
+
+
+class Background(pygame.sprite.Sprite):  # Фонновое изображение
+    def __init__(self, image_file, location):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.image.load(image_file)
+        self.rect = self.image.get_rect()
+        self.rect.left, self.rect.top = location
 
 
 def load_image(name, colorkey=None):
@@ -37,7 +47,6 @@ def load_level(filename):
 tile_images = {
     'earth': load_image('single_earth.png'),
     'upper_back': load_image('upper.png'),
-    'middle_back': load_image('mid.png'),
     'down_back': load_image('down.png')
 }
 
@@ -52,7 +61,7 @@ class Tile(pygame.sprite.Sprite):
             tile_width * pos_x, tile_height * pos_y)
 
 
-player_image = load_image('hero.png')
+player_image = load_image('hero1.png')
 
 
 class Player(pygame.sprite.Sprite):
@@ -74,8 +83,6 @@ def generate_level(level):
         for x in range(len(level[y])):
             if level[y][x] == '-':
                 Tile('upper_back', x, y)
-            elif level[y][x] == '|':
-                Tile('middle_back', x, y)
             elif level[y][x] == '@':
                 Tile('down_back', x, y)
                 new_player = Player(x, y)
@@ -91,14 +98,16 @@ def terminate():
     pygame.quit()
     sys.exit()
 
-player, level_x, level_y = generate_level(load_level('level1.txt'))
 
+player, level_x, level_y = generate_level(load_level('level1.txt'))
+BackGround = Background('back.png', [0, 0])
 while True:
     for event in pygame.event.get():
+        screen.fill([255, 255, 255])
+        screen.blit(BackGround.image, BackGround.rect)
         if event.type == pygame.QUIT:
             terminate()
         tiles_group.draw(screen)
         player_group.draw(screen)
-
     pygame.display.flip()
     clock.tick(FPS)
