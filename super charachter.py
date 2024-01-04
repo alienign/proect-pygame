@@ -4,7 +4,7 @@ import pygame
 
 size = width, height = 1600, 1000
 screen = pygame.display.set_mode(size)
-FPS = 50
+FPS = 20
 clock = pygame.time.Clock()
 max_width = 0
 
@@ -47,7 +47,8 @@ tile_images = {
     'earth': load_image('single_earth.png'),
     'upper_back': load_image('upper.png'),
     'down_back': load_image('down.png'),
-    'platform': load_image('platform.png')
+    'platform': load_image('platform.png'),
+    'mid_back': load_image('mid.png')
 }
 
 tile_width = tile_height = 100
@@ -111,6 +112,8 @@ def generate_level(level):
         for x in range(len(level[y])):
             if level[y][x] == '-':
                 Tile('upper_back', x, y)
+            elif level[y][x] == '?':
+                Tile('mid_back', x, y)
             elif level[y][x] == '@':
                 Tile('down_back', x, y)
                 new_player = Player(x, y)
