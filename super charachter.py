@@ -100,7 +100,7 @@ def terminate():
 
 
 player, level_x, level_y = generate_level(load_level('level1.txt'))
-BackGround = Background('back.png', [0, 0])
+BackGround = Background(os.path.join('data', 'back.png'), [0, 0])
 while True:
     for event in pygame.event.get():
         screen.fill([255, 255, 255])
