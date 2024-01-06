@@ -84,6 +84,8 @@ class Player(pygame.sprite.Sprite):
         if direc == 1:
             if tile_height * self.pos_y + self.move_y - 10 >= 0:
                 self.move_y -= 10
+                if abs(self.move_y) > tile_height * 2 + 10:
+                    self.move_y += 10
                 for hero in player_group:
                     x1, y1 = hero.rect.x, hero.rect.y
                 for sprite in tiles_group:
@@ -92,8 +94,6 @@ class Player(pygame.sprite.Sprite):
                             (0 <= abs(x1 - x2) < tile_height):
                         self.move_y = py + 10
                         self.move_x = px
-                self.rect = self.image.get_rect().move(
-                    tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
         if direc == 2:
             if tile_width * self.pos_x + self.move_x + 10 < max_width * tile_width:
                 self.move_x += 10
@@ -101,12 +101,10 @@ class Player(pygame.sprite.Sprite):
                     x1, y1 = hero.rect.x, hero.rect.y
                 for sprite in tiles_group:
                     x2, y2 = sprite.rect.x, sprite.rect.y
-                    if x1 + self.move_x + tile_width >= x2 + self.move_x and x1 <= x2 and\
+                    if x1 + self.move_x + tile_width >= x2 + self.move_x and x1 <= x2 and \
                             (0 <= abs(y1 - y2) < tile_height):
                         self.move_x = px - 10
-                        self.move_y = py
-                self.rect = self.image.get_rect().move(
-                    tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
+                        self.move_y = 0
         if direc == 3:
             if tile_width * self.pos_x + self.move_x - 10 >= 0:
                 self.move_x -= 10
@@ -117,10 +115,24 @@ class Player(pygame.sprite.Sprite):
                     if x1 - self.move_x - tile_width <= x2 - self.move_x and x1 >= x2 and \
                             (0 <= abs(y1 - y2) < tile_height):
                         self.move_x = px + 10
-                        self.move_y = py
-                self.rect = self.image.get_rect().move(
-                    tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
+                        self.move_y = 0
+        self.rect = self.image.get_rect().move(
+            tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
 
+    def gravity(self, x, y):
+        self.move_y = 0
+        x1, y = x / tile_width, y // tile_height
+        if x1 % 1 > 0.7:
+            x1 = int(x1 + 1)
+        else:
+            x1 = int(x1)
+        try:
+            coord = level_map[y + 1][x1]
+            self.pos_y = y
+            if coord == '.':
+                self.rect = self.image.get_rect().move(x, tile_height * (y + 1))
+        except IndexError:
+            pass  # Перс должен пропасть
 
 
 all_sprites = pygame.sprite.Group()
@@ -132,7 +144,7 @@ def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
-            if level[y][x] == '@':
+            if x == 0 and y == 7:
                 new_player = Player(x, y)
             elif level[y][x] == '=':
                 Tile('platform', x, y)
@@ -147,7 +159,8 @@ def terminate():
     sys.exit()
 
 
-player, level_x, level_y = generate_level(load_level('level1.txt'))
+level_map = load_level('level1.txt')
+player, level_x, level_y = generate_level(level_map)
 BackGround = Background(os.path.join('data', 'back.png'), [0, 0])
 up = False
 right = False
@@ -158,6 +171,7 @@ while True:
         if event.type == pygame.QUIT:
             terminate()
     keys = pygame.key.get_pressed()
+    player.gravity(player.rect.x, player.rect.y)
     if keys[pygame.K_UP]:
         player.change(1)
     if keys[pygame.K_RIGHT]:
