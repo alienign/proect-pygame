@@ -186,7 +186,7 @@ class CameraGroup(pygame.sprite.Group):
 
         self.offset = pygame.math.Vector2(
             self.camera_rect.left - borders_camera['left'],
-            self.camera_rect.top - borders_camera['top'])
+            self.camera_rect.top - borders_camera['up'])
 
         for sprite in self.sprites():
             self.display_surface.blit(sprite.image, sprite.rect.topleft - self.offset)
