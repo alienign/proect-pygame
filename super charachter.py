@@ -75,22 +75,20 @@ class Player(pygame.sprite.Sprite):
         self.move_x = 0
         self.move_y = 0
         self.pos_x, self.pos_y = self.rect.x, self.rect.y
-        self.height_y = 0
 
     def change(self, direc):
         px, py = self.move_x, self.move_y
         x1, x2 = 0, 0
         y1, y2 = 0, 0
         if direc == 1:
-            if tile_height * self.pos_y + self.move_y - 200 >= 0 and self.height_y <= 400:
+            if tile_height * self.pos_y + self.move_y - 200 >= 0:
                 self.move_y -= 200
-                self.height_y += 200
                 for hero in player_group:
                     x1, y1 = hero.rect.x, hero.rect.y
                 for sprite in tiles_group:
                     x2, y2 = sprite.rect.x, sprite.rect.y
                     if y1 - self.move_y - tile_height <= y2 - self.move_y and y1 >= y2 and \
-                            (0 <= abs(x1 - x2) < tile_width):
+                            (0 <= abs(x1 - x2) < tile_height):
                         self.move_y = py
                         self.move_x = px
         if direc == 2:
@@ -119,9 +117,9 @@ class Player(pygame.sprite.Sprite):
                 self.gravity(tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
         if direc == 4:
             if tile_height * self.pos_y + self.move_y - 200 >= 0 and \
-                    tile_width * self.pos_x + self.move_x + 20 < max_width * tile_width:
+                    tile_width * self.pos_x + self.move_x + 10 < max_width * tile_width:
                 self.move_y -= 200
-                self.move_x += 20
+                self.move_x += 10
                 for hero in player_group:
                     x1, y1 = hero.rect.x, hero.rect.y
                 for sprite in tiles_group:
@@ -129,14 +127,14 @@ class Player(pygame.sprite.Sprite):
                     if (y1 - self.move_y - tile_height <= y2 - self.move_y and y1 >= y2 and
                             (0 <= abs(x1 - x2) < tile_height)) and (x1 - self.move_x - tile_width <= x2 - self.move_x
                                                                     and x1 >= x2 and (0 <= abs(y1 - y2) < tile_height)):
-                        self.move_x = px + 20
+                        self.move_x = px + 10
                         self.move_y = py
                 self.gravity(tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
         if direc == 5:
             if tile_height * self.pos_y + self.move_y - 200 >= 0 and \
-                    tile_width * self.pos_x + self.move_x - 20 >= 0:
+                    tile_width * self.pos_x + self.move_x - 10 >= 0:
                 self.move_y -= 200
-                self.move_x -= 20
+                self.move_x -= 10
                 for hero in player_group:
                     x1, y1 = hero.rect.x, hero.rect.y
                 for sprite in tiles_group:
@@ -144,7 +142,7 @@ class Player(pygame.sprite.Sprite):
                     if (y1 - self.move_y - tile_height <= y2 - self.move_y and y1 >= y2 and
                             (0 <= abs(x1 - x2) < tile_height)) and (x1 + self.move_x + tile_width >= x2 + self.move_x
                                                                     and x1 <= x2 and (0 <= abs(y1 - y2) < tile_height)):
-                        self.move_x = px - 20
+                        self.move_x = px - 10
                         self.move_y = py
                 self.gravity(tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
         self.rect = self.image.get_rect().move(
@@ -163,8 +161,6 @@ class Player(pygame.sprite.Sprite):
             if coord == '.':
                 self.pos_y = y + 1
                 self.rect = self.image.get_rect().move(x / tile_width * tile_width, tile_height * (y + 1))
-            elif coord == '+' or coord == '=':
-                self.height_y = 0
         except IndexError:
             for sprite in player_group:
                 sprite.kill()
@@ -223,4 +219,3 @@ while True:
     player_group.draw(screen)
     pygame.display.flip()
     clock.tick(FPS)
-    
