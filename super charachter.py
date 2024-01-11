@@ -4,7 +4,7 @@ import pygame
 
 size = width, height = 1600, 1000
 screen = pygame.display.set_mode(size)
-FPS = 20
+FPS = 60
 clock = pygame.time.Clock()
 max_width = 0
 
@@ -17,7 +17,7 @@ class Background(pygame.sprite.Sprite):  # Фонновое изображени
         self.rect.left, self.rect.top = location
 
 
-def load_image(name, colorkey=None):
+def load_image(name, colorkey=None):  # Загрузка изображения
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
@@ -28,161 +28,168 @@ def load_image(name, colorkey=None):
         if colorkey == -1:
             colorkey = image.get_at((0, 0))
         image.set_colorkey(colorkey)
-    else:
-        image = image.convert_alpha()
     return image
 
 
-def load_level(filename):
-    filename = "data/" + filename
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
+class Level:
+    def __init__(self):
+        self.display_surface = pygame.display.get_surface()
+        self.visible_sprites = CameraGroup()
+        self.collision_sprites = pygame.sprite.Group()
+        self.active_sprites = pygame.sprite.Group()
 
-    global max_width
-    max_width = max(map(len, level_map))
+        self.generate_level()
 
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+    def load_level(self, filename):  # Загрузка уровней
+        filename = "data/" + filename
+        with open(filename, 'r') as mapFile:
+            level_map = [line.strip() for line in mapFile]
+
+        global max_width
+        max_width = max(map(len, level_map))
+
+        return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+
+    def generate_level(self):  # Создание уровня
+        level = self.load_level('level1.txt')
+        for y in range(len(level)):
+            for x in range(len(level[y])):
+                x_x = tile_size * x
+                y_y = tile_size * y
+                if level[y][x] == '=':
+                    Tile('platform', (x_x, y_y), self.visible_sprites, self.collision_sprites)
+                if level[y][x] == '+':
+                    Tile('earth', (x_x, y_y), self.visible_sprites, self.collision_sprites)
+                if level[y][x] == '@':
+                    self.player = Player((x_x, y_y), self.visible_sprites, self.active_sprites, self.collision_sprites)
+                global width_x
+                width_x = x * tile_size
+
+    def run(self):
+        self.active_sprites.update()
+        self.visible_sprites.camera_configure(self.player)
 
 
 tile_images = {
     'earth': load_image('single_earth.png'),
-    'upper_back': load_image('upper.png'),
-    'down_back': load_image('down.png'),
-    'platform': load_image('platform.png'),
-    'mid_back': load_image('mid.png')
+    'platform': load_image('platform.png')
 }
 
-tile_width = tile_height = 100
+tile_size = 100
+width_x = 0
 
 
 class Tile(pygame.sprite.Sprite):
-    def __init__(self, tile_type, pos_x, pos_y):
-        super().__init__(tiles_group, all_sprites)
+    def __init__(self, tile_type, pos, group1, group2):
+        super().__init__(group1, group2)
         self.image = tile_images[tile_type]
-        self.rect = self.image.get_rect().move(
-            tile_width * pos_x, tile_height * pos_y)
+        self.rect = self.image.get_rect(topleft=pos)
 
 
 player_image = load_image('hero1.png')
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(player_group, all_sprites)
+    def __init__(self, pos, group1, group2, collision_sprites):
+        super().__init__(group1, group2)
         self.image = player_image
-        self.rect = self.image.get_rect().move(
-            tile_width * pos_x, tile_height * pos_y)
-        self.move_x = 0
-        self.move_y = 0
-        self.pos_x, self.pos_y = self.rect.x, self.rect.y
+        self.rect = self.image.get_rect(topleft=pos)
+        self.y = self.rect.y
+        self.on_ground = False
 
-    def change(self, direc):
-        px, py = self.move_x, self.move_y
-        x1, x2 = 0, 0
-        y1, y2 = 0, 0
-        if direc == 1:
-            if tile_height * self.pos_y + self.move_y - 200 >= 0:
-                self.move_y -= 200
-                for hero in player_group:
-                    x1, y1 = hero.rect.x, hero.rect.y
-                for sprite in tiles_group:
-                    x2, y2 = sprite.rect.x, sprite.rect.y
-                    if y1 - self.move_y - tile_height <= y2 - self.move_y and y1 >= y2 and \
-                            (0 <= abs(x1 - x2) < tile_height):
-                        self.move_y = py
-                        self.move_x = px
-        if direc == 2:
-            if tile_width * self.pos_x + self.move_x + 10 < max_width * tile_width:
-                self.move_x += 10
-                for hero in player_group:
-                    x1, y1 = hero.rect.x, hero.rect.y
-                for sprite in tiles_group:
-                    x2, y2 = sprite.rect.x, sprite.rect.y
-                    if x1 + self.move_x + tile_width >= x2 + self.move_x and x1 <= x2 and \
-                            (0 <= abs(y1 - y2) < tile_height):
-                        self.move_x = px - 10
-                        self.move_y = 0
-                self.gravity(tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
-        if direc == 3:
-            if tile_width * self.pos_x + self.move_x - 10 >= 0:
-                self.move_x -= 10
-                for hero in player_group:
-                    x1, y1 = hero.rect.x, hero.rect.y
-                for sprite in tiles_group:
-                    x2, y2 = sprite.rect.x, sprite.rect.y
-                    if x1 - self.move_x - tile_width <= x2 - self.move_x and x1 >= x2 and \
-                            (0 <= abs(y1 - y2) < tile_height):
-                        self.move_x = px + 10
-                        self.move_y = 0
-                self.gravity(tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
-        if direc == 4:
-            if tile_height * self.pos_y + self.move_y - 200 >= 0 and \
-                    tile_width * self.pos_x + self.move_x + 10 < max_width * tile_width:
-                self.move_y -= 200
-                self.move_x += 10
-                for hero in player_group:
-                    x1, y1 = hero.rect.x, hero.rect.y
-                for sprite in tiles_group:
-                    x2, y2 = sprite.rect.x, sprite.rect.y
-                    if (y1 - self.move_y - tile_height <= y2 - self.move_y and y1 >= y2 and
-                            (0 <= abs(x1 - x2) < tile_height)) and (x1 - self.move_x - tile_width <= x2 - self.move_x
-                                                                    and x1 >= x2 and (0 <= abs(y1 - y2) < tile_height)):
-                        self.move_x = px + 10
-                        self.move_y = py
-                self.gravity(tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
-        if direc == 5:
-            if tile_height * self.pos_y + self.move_y - 200 >= 0 and \
-                    tile_width * self.pos_x + self.move_x - 10 >= 0:
-                self.move_y -= 200
-                self.move_x -= 10
-                for hero in player_group:
-                    x1, y1 = hero.rect.x, hero.rect.y
-                for sprite in tiles_group:
-                    x2, y2 = sprite.rect.x, sprite.rect.y
-                    if (y1 - self.move_y - tile_height <= y2 - self.move_y and y1 >= y2 and
-                            (0 <= abs(x1 - x2) < tile_height)) and (x1 + self.move_x + tile_width >= x2 + self.move_x
-                                                                    and x1 <= x2 and (0 <= abs(y1 - y2) < tile_height)):
-                        self.move_x = px - 10
-                        self.move_y = py
-                self.gravity(tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
-        self.rect = self.image.get_rect().move(
-            tile_width * self.pos_x + self.move_x, tile_height * self.pos_y + self.move_y)
+        self.direction = pygame.math.Vector2()
+        self.speed = 10
+        self.gravity_speed = 1.3
+        self.jump_speed = 25
+        self.collision_sprites = collision_sprites
 
-    def gravity(self, x, y):
-        self.move_y = 0
-        x1, y = x / tile_width, y // tile_height
-        if x1 % 1 >= 0.5:
-            x1 = int(x1 + 1)
+    def input(self):  # Получение информации о том какая из кнопок нажата / зажата
+        global width_x
+        keys = pygame.key.get_pressed()
+
+        if self.rect.x < width_x - tile_size // 10 and keys[pygame.K_RIGHT]:
+            self.direction.x = 1
+        elif 0 < self.rect.x and keys[pygame.K_LEFT]:
+            self.direction.x = -1
         else:
-            x1 = int(x1)
-        try:
-            coord = level_map[y + 1][x1]
-            self.pos_y = y
-            if coord == '.':
-                self.pos_y = y + 1
-                self.rect = self.image.get_rect().move(x / tile_width * tile_width, tile_height * (y + 1))
-        except IndexError:
-            for sprite in player_group:
-                sprite.kill()
+            self.direction.x = 0
+
+        if keys[pygame.K_UP] and self.on_ground:
+            self.direction.y = -self.jump_speed
+
+    def vertical_c(self):  # Вертикальное столкновение героя
+        for sprite in self.collision_sprites.sprites():
+            if sprite.rect.colliderect(self.rect):
+                if self.direction.y > 0:
+                    self.rect.bottom = sprite.rect.top
+                    self.direction.y = 0
+                    self.on_ground = True
+                if self.direction.y < 0:
+                    self.rect.top = sprite.rect.bottom
+                    self.direction.y = 0
+
+        if self.on_ground and self.direction.y != 0:
+            self.on_ground = False
+
+    def horizontal_c(self):  # Горизонтальное столкновение героя
+        for sprite in self.collision_sprites.sprites():
+            if sprite.rect.colliderect(self.rect):
+                if self.direction.x < 0:
+                    self.rect.left = sprite.rect.right
+                if self.direction.x > 0:
+                    self.rect.right = sprite.rect.left
+
+    def gravity(self):  # Гравитация
+        self.direction.y += self.gravity_speed
+        self.rect.y += self.direction.y
+        # if self.rect.y >= self.y + tile_size * 10:
+        # print('Game over')
+
+    def update(self):
+        self.input()
+        self.rect.x += self.direction.x * self.speed
+        self.horizontal_c()
+        self.gravity()
+        self.vertical_c()
 
 
-all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
+borders_camera = {
+    'left': 0,
+    'up': 100,
+    'right': 200,
+    'down': 50
+}
 
 
-def generate_level(level):
-    new_player, x, y = None, None, None
-    for y in range(len(level)):
-        for x in range(len(level[y])):
-            if x == 0 and y == 7:
-                new_player = Player(x, y)
-            elif level[y][x] == '=':
-                Tile('platform', x, y)
-            elif level[y][x] == '+':
-                Tile('earth', x, y)
-    # вернем игрока, а также размер поля в клетках
-    return new_player, x, y
+class CameraGroup(pygame.sprite.Group):
+    def __init__(self):
+        super().__init__()
+        self.display_surface = pygame.display.get_surface()
+        self.offset = pygame.math.Vector2(100, 300)
+
+        cam_left = borders_camera['left']
+        cam_up = borders_camera['up']
+        cam_right = self.display_surface.get_size()[0] - (cam_left + borders_camera['right'])
+        cam_down = self.display_surface.get_size()[1] - (cam_up + borders_camera['down'])
+
+        self.camera_rect = pygame.Rect(cam_left, cam_up, cam_right, cam_down)
+
+    def camera_configure(self, player):  # Регулировка камеры
+        if player.rect.x > 0 and player.rect.left < self.camera_rect.left:
+            self.camera_rect.left = player.rect.left
+        if player.rect.x <= width_x - tile_size * 2 and player.rect.right > self.camera_rect.right:
+            self.camera_rect.right = player.rect.right
+        if player.rect.top < self.camera_rect.top:
+            self.camera_rect.top = player.rect.top
+        if player.rect.bottom > self.camera_rect.bottom:
+            self.camera_rect.bottom = player.rect.bottom
+
+        self.offset = pygame.math.Vector2(
+            self.camera_rect.left - borders_camera['left'],
+            self.camera_rect.top - borders_camera['top'])
+
+        for sprite in self.sprites():
+            self.display_surface.blit(sprite.image, sprite.rect.topleft - self.offset)
 
 
 def terminate():
@@ -190,32 +197,15 @@ def terminate():
     sys.exit()
 
 
-level_map = load_level('level1.txt')
-player, level_x, level_y = generate_level(level_map)
 BackGround = Background(os.path.join('data', 'back.png'), [0, 0])
-up = False
-right = False
-down = False
-left = False
+pygame.display.set_caption('Super charachter')
+lvl = Level()
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             terminate()
-    keys = pygame.key.get_pressed()
-    player.gravity(player.rect.x, player.rect.y)
-    if keys[pygame.K_UP]:
-        player.change(1)
-    if keys[pygame.K_RIGHT]:
-        player.change(2)
-    if keys[pygame.K_LEFT]:
-        player.change(3)
-    if keys[pygame.K_UP] and keys[pygame.K_RIGHT]:
-        player.change(4)
-    if keys[pygame.K_UP] and keys[pygame.K_LEFT]:
-        player.change(5)
     screen.fill([255, 255, 255])
     screen.blit(BackGround.image, BackGround.rect)
-    tiles_group.draw(screen)
-    player_group.draw(screen)
-    pygame.display.flip()
+    lvl.run()
+    pygame.display.update()
     clock.tick(FPS)
