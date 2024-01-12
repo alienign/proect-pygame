@@ -2,11 +2,12 @@ import os
 import sys
 import pygame
 
-size = width, height = 1600, 1000
+size = WIDTH, HEIGHT = 1600, 1000
 screen = pygame.display.set_mode(size)
 FPS = 60
 clock = pygame.time.Clock()
 max_width = 0
+pygame.init()
 
 
 class Background(pygame.sprite.Sprite):  # Фонновое изображение
@@ -192,6 +193,46 @@ class CameraGroup(pygame.sprite.Group):
             self.display_surface.blit(sprite.image, sprite.rect.topleft - self.offset)
 
 
+def start_screen():
+    intro_text = ["CУПЕР ГЕРОЙ", "",
+                  "Тут должны быть правила"]
+
+    fon = pygame.transform.scale(load_image('fon.jpg'), (WIDTH, HEIGHT))
+    screen.blit(fon, (0, 0))
+    font = pygame.font.Font(None, 30)
+    text_coord = 50
+    for line in intro_text:
+        string_rendered = font.render(line, 1, pygame.Color('white'))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+    font = pygame.font.Font(None, 50)
+    text = font.render("Начать!", True, (100, 255, 100))
+    text_x = 25
+    text_y = 300
+    text_w = text.get_width()
+    text_h = text.get_height()
+    screen.blit(text, (text_x, text_y))
+    pygame.draw.rect(screen, (0, 255, 0), (text_x - 10, text_y - 10,
+                                           text_w + 20, text_h + 20), 1)
+    pygame.display.flip()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            elif event.type == pygame.KEYDOWN and pygame.key.get_pressed()[pygame.K_RETURN]:
+                return  # начинаем игру
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                pos_m = event.pos
+                if 15 < pos_m[0] < 160 and 270 < pos_m[1] < 370:
+                    return
+        pygame.display.flip()
+        clock.tick(FPS)
+
+start_screen()
 def terminate():
     pygame.quit()
     sys.exit()
