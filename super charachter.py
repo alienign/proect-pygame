@@ -38,6 +38,7 @@ class Level:
         self.visible_sprites = CameraGroup()
         self.collision_sprites = pygame.sprite.Group()
         self.active_sprites = pygame.sprite.Group()
+        self.sprites = pygame.sprite.Group()
 
         self.generate_level()
 
@@ -53,6 +54,8 @@ class Level:
 
     def generate_level(self):  # Создание уровня
         level = self.load_level('level1.txt')
+        cactus_pos = []
+        key_pos = []
         for y in range(len(level)):
             for x in range(len(level[y])):
                 x_x = tile_size * x
@@ -61,8 +64,17 @@ class Level:
                     Tile('platform', (x_x, y_y), self.visible_sprites, self.collision_sprites)
                 if level[y][x] == '+':
                     Tile('earth', (x_x, y_y), self.visible_sprites, self.collision_sprites)
+                if level[y][x] == '|':
+                    Sprite('cactus', (x_x, y_y), self.visible_sprites, self.sprites)
+                    cactus_pos.append((x_x, y_y))
+                if level[y][x] == '-':
+                    Sprite('key', (x_x, y_y), self.visible_sprites, self.sprites)
+                    key_pos.append((x_x, y_y))
+                if level[y][x] == '*':
+                    Sprite('heart', (x_x, y_y), self.visible_sprites, self.sprites)
                 if level[y][x] == '@':
-                    self.player = Player((x_x, y_y), self.visible_sprites, self.active_sprites, self.collision_sprites)
+                    self.player = Player((x_x, y_y), self.visible_sprites, self.active_sprites,
+                                         self.collision_sprites, self.sprites, cactus_pos, key_pos)
                 global width_x
                 width_x = x * tile_size
 
@@ -74,6 +86,11 @@ class Level:
 tile_images = {
     'earth': load_image('single_earth.png'),
     'platform': load_image('platform.png')
+}
+sprite_images = {
+    'heart': load_image('heart.png'),
+    'cactus': load_image('cactus.png'),
+    'key': load_image('key.png')
 }
 
 tile_size = 100
@@ -87,22 +104,33 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=pos)
 
 
+class Sprite(pygame.sprite.Sprite):
+    def __init__(self, tile_type, pos, group1, group2):
+        super().__init__(group1, group2)
+        self.image = sprite_images[tile_type]
+        self.rect = self.image.get_rect(topleft=pos)
+
+
 player_image = load_image('hero1.png')
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, group1, group2, collision_sprites):
+    def __init__(self, pos, group1, group2, collision_sprites, sprites, cactus_pos, key_pos):
         super().__init__(group1, group2)
         self.image = player_image
         self.rect = self.image.get_rect(topleft=pos)
         self.y = self.rect.y
         self.on_ground = False
+        self.on_start_y, self.on_start_x = False, False
 
         self.direction = pygame.math.Vector2()
         self.speed = 10
         self.gravity_speed = 1.3
         self.jump_speed = 25
         self.collision_sprites = collision_sprites
+        self.sprites = sprites
+        self.cactus_pos, self.key_pos = cactus_pos, key_pos
+        self.count, self.count_heart, self.count_key = 0, 3, 0
 
     def input(self):  # Получение информации о том какая из кнопок нажата / зажата
         global width_x
@@ -119,46 +147,90 @@ class Player(pygame.sprite.Sprite):
             self.direction.y = -self.jump_speed
 
     def vertical_c(self):  # Вертикальное столкновение героя
-        for sprite in self.collision_sprites.sprites():
-            if sprite.rect.colliderect(self.rect):
+        for tile in self.collision_sprites.sprites():
+            if tile.rect.colliderect(self.rect):
                 if self.direction.y > 0:
-                    self.rect.bottom = sprite.rect.top
+                    self.rect.bottom = tile.rect.top
                     self.direction.y = 0
                     self.on_ground = True
                 if self.direction.y < 0:
-                    self.rect.top = sprite.rect.bottom
+                    self.rect.top = tile.rect.bottom
                     self.direction.y = 0
-
+        for sprite in self.sprites.sprites():
+            sprite_pos = sprite.rect.x, sprite.rect.y
+            for pos_c in self.cactus_pos:
+                if pos_c == sprite_pos:
+                    if sprite.rect.colliderect(self.rect):
+                        if self.direction.y > 0:
+                            self.rect.bottom = sprite.rect.top
+                            self.direction.y = 0
+                            self.on_ground = True
+                            self.on_start_y = True
+                else:
+                    for pos_k in self.key_pos:  # Собираем ключи
+                        if pos_k == sprite_pos:
+                            if sprite.rect.colliderect(self.rect):
+                                self.count_key += 1
+                                sprite.kill()
         if self.on_ground and self.direction.y != 0:
             self.on_ground = False
 
     def horizontal_c(self):  # Горизонтальное столкновение героя
-        for sprite in self.collision_sprites.sprites():
-            if sprite.rect.colliderect(self.rect):
+        for tile in self.collision_sprites.sprites():
+            if tile.rect.colliderect(self.rect):
                 if self.direction.x < 0:
-                    self.rect.left = sprite.rect.right
+                    self.rect.left = tile.rect.right
                 if self.direction.x > 0:
-                    self.rect.right = sprite.rect.left
+                    self.rect.right = tile.rect.left
+        for sprite in self.sprites.sprites():
+            sprite_pos = sprite.rect.x, sprite.rect.y
+            for pos in self.cactus_pos:
+                if pos == sprite_pos:
+                    if sprite.rect.colliderect(self.rect):
+                        if self.direction.x < 0:
+                            self.rect.left = sprite.rect.left + 75
+                            self.on_start_x = True
+                        if self.direction.x > 0:
+                            self.rect.right = sprite.rect.right - 75
+                            self.on_start_x = True
 
     def gravity(self):  # Гравитация
         self.direction.y += self.gravity_speed
         self.rect.y += self.direction.y
-        # if self.rect.y >= self.y + tile_size * 10:
-        # print('Game over')
+        if self.rect.y >= self.y + tile_size * 20:  # Возвращение на начальную позицию при подении в яму
+            self.direction.y = -self.jump_speed // 2
+            self.rect = self.rect = self.image.get_rect(topleft=(0, 700))
+            # Нужно настроить камеру
+
+    def start(self):  # Возвращение на начальную позицию при столковении со спрайтом кактуса
+        if self.on_start_y:
+            self.count_heart -= 1
+            self.direction.y = -self.jump_speed // 2
+            self.count += 1
+            if self.count == 2:
+                self.rect = self.image.get_rect(topleft=(0, 700))
+                self.count = 0
+            self.on_start_y = False
+        if self.on_start_x:
+            self.count_heart -= 1
+            self.direction.y = -self.jump_speed // 2
+            self.rect = self.image.get_rect(topleft=(0, 700))
+            self.on_start_x = False
 
     def update(self):
         self.input()
         self.rect.x += self.direction.x * self.speed
         self.horizontal_c()
         self.gravity()
+        self.start()
         self.vertical_c()
 
 
 borders_camera = {
     'left': 0,
-    'up': 100,
+    'up': 50,
     'right': 200,
-    'down': 50
+    'down': 100
 }
 
 
@@ -232,7 +304,10 @@ def start_screen():
         pygame.display.flip()
         clock.tick(FPS)
 
+
 start_screen()
+
+
 def terminate():
     pygame.quit()
     sys.exit()
@@ -245,6 +320,7 @@ while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             terminate()
+    pygame.mouse.set_visible(False)  # Мышка отключена, чтобы не мешать игровому процессу (* тк она не используется)
     screen.fill([255, 255, 255])
     screen.blit(BackGround.image, BackGround.rect)
     lvl.run()
