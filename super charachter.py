@@ -330,10 +330,12 @@ class Player(pygame.sprite.Sprite):
             self.cur_frame_run_right = (self.cur_frame_run_right + 1) % len(self.frames_run_right)
             self.image = self.frames_run_right[self.cur_frame_run_right]
             did_ran_right = True
+            jump = 0
         if keys[pygame.K_LEFT]:
             self.cur_frame_run_left = (self.cur_frame_run_left + 1) % len(self.frames_run_left)
             self.image = self.frames_run_left[self.cur_frame_run_left]
             did_ran_left = True
+            jump = 1
         if not keys[pygame.K_RIGHT] and not keys[pygame.K_UP] and not keys[pygame.K_LEFT]:
             if did_ran_right:
                 self.image = player_image_right
