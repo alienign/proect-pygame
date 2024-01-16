@@ -78,7 +78,8 @@ class Level:
                     key_pos.append((x_x, y_y))
                 if level[y][x] == '@':
                     self.player = Player((x_x, y_y), self.visible_sprites, self.active_sprites,
-                                         self.collision_sprites, self.sprites, cactus_pos, key_pos, heart_pos)
+                                         self.collision_sprites, self.sprites, cactus_pos, key_pos, heart_pos,
+                                         load_image('running_character.png'), 8, 1, load_image('running_character1.png'), load_image('jumping_charachter.png'), 3, 1)
                 if level[y][x] == '*':
                     for i in range(3):
                         if i > 0:
@@ -121,17 +122,31 @@ class Sprite(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=pos)
 
 
-player_image = load_image('hero1.png')
-
+player_image_right = load_image('hero1.png')
+player_image_left = load_image('hero2.png')
+did_ran_right = False
+did_ran_left = False
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, group1, group2, collision_sprites, sprites, cactus_pos, key_pos, heart_pos):
+    def __init__(self, pos, group1, group2, collision_sprites, sprites, cactus_pos, key_pos, heart_pos, sheet_run_right, columns_run, rows_run, sheet_run_left, sheet_jump, columns_jump, rows_jump):
         super().__init__(group1, group2)
-        self.image = player_image
+        self.image = player_image_right
         self.rect = self.image.get_rect(topleft=pos)
         self.y = self.rect.y
         self.on_ground = False
         self.on_start_y, self.on_start_x = False, False
+
+        self.frames_run_right = []
+        self.cut_sheet_right(sheet_run_right, columns_run, rows_run)
+        self.cur_frame_run_right = 0
+
+        self.frames_run_left = []
+        self.cut_sheet_left(sheet_run_left, columns_run, rows_run)
+        self.cur_frame_run_left = 0
+
+        self.frames_jump = []
+        self.cut_sheet_jump(sheet_jump, columns_jump, rows_jump)
+        self.cur_frame_jump = 0
 
         self.direction = pygame.math.Vector2()
         self.speed = 10
@@ -219,7 +234,6 @@ class Player(pygame.sprite.Sprite):
                         if self.direction.x > 0:
                             self.rect.right = sprite.rect.right - 75
                             self.on_start_x = True
-
         if collision:  # Уменьшаем кол-во жизней
             for heart in self.sprites:
                 sprite_pos = heart.rect.x, heart.rect.y
@@ -264,6 +278,54 @@ class Player(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(topleft=(0, 700))
             self.on_start_x = False
 
+    def cut_sheet_right(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, 
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames_run_right.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def cut_sheet_left(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames_run_left.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def cut_sheet_jump(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for j in range(rows):
+            for i in range(columns):
+                frame_location = (self.rect.w * i, self.rect.h * j)
+                self.frames_jump.append(sheet.subsurface(pygame.Rect(
+                    frame_location, self.rect.size)))
+
+    def animate(self):
+        keys = pygame.key.get_pressed()
+        global did_ran_right
+        global did_ran_left
+        if keys[pygame.K_RIGHT]:
+            self.cur_frame_run_right = (self.cur_frame_run_right + 1) % len(self.frames_run_right)
+            self.image = self.frames_run_right[self.cur_frame_run_right]
+            did_ran_right = True
+        if keys[pygame.K_LEFT]:
+            self.cur_frame_run_left = (self.cur_frame_run_left + 1) % len(self.frames_run_left)
+            self.image = self.frames_run_left[self.cur_frame_run_left]
+            did_ran_left = True
+        if not keys[pygame.K_RIGHT] and not keys[pygame.K_UP] and not keys[pygame.K_LEFT]:
+            if did_ran_right:
+                self.image = player_image_right
+                did_ran_right = False
+            if did_ran_left:
+                self.image = player_image_left
+                did_ran_left = False
+
+
     def update(self):
         self.input()
         self.rect.x += self.direction.x * self.speed
@@ -271,6 +333,7 @@ class Player(pygame.sprite.Sprite):
         self.gravity()
         self.start()
         self.vertical_c()
+        self.animate()
 
 
 borders_camera = {
