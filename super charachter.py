@@ -451,7 +451,7 @@ def game_screen(name):  # Финальный экран
                 start = True
             if start:
                 BackGround = Background(os.path.join('data', 'back.png'), [0, 0])
-                pygame.display.set_caption('Super charachter')
+                pygame.display.set_caption('Super character')
                 lvl = Level()
                 while True:
                     for event in pygame.event.get():
@@ -474,7 +474,7 @@ def terminate():
 
 
 BackGround = Background(os.path.join('data', 'back.png'), [0, 0])
-pygame.display.set_caption('Super charachter')
+pygame.display.set_caption('Super character')
 order = 0
 lvl = Level()
 while True:
