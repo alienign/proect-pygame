@@ -10,6 +10,7 @@ max_width = 0
 pygame.init()
 count_keys = 3
 
+
 class Background(pygame.sprite.Sprite):  # Фонновое изображение
     def __init__(self, image_file, location):
         pygame.sprite.Sprite.__init__(self)
@@ -79,7 +80,8 @@ class Level:
                 if level[y][x] == '@':
                     self.player = Player((x_x, y_y), self.visible_sprites, self.active_sprites,
                                          self.collision_sprites, self.sprites, cactus_pos, key_pos, heart_pos,
-                                         load_image('running_character.png'), 8, 1, load_image('running_character1.png'), load_image('jumping_charachter.png'), 3, 1)
+                                         load_image('running_character.png'), 8, 1, load_image('running_character1.png'),
+                                         load_image('jumping_charachter.png'), 3, 1)
                 if level[y][x] == '*':
                     for i in range(3):
                         if i > 0:
@@ -127,8 +129,10 @@ player_image_left = load_image('hero2.png')
 did_ran_right = False
 did_ran_left = False
 
+
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, group1, group2, collision_sprites, sprites, cactus_pos, key_pos, heart_pos, sheet_run_right, columns_run, rows_run, sheet_run_left, sheet_jump, columns_jump, rows_jump):
+    def __init__(self, pos, group1, group2, collision_sprites, sprites, cactus_pos, key_pos, pos_heart, sheet_run_right,
+                 columns_run, rows_run, sheet_run_left, sheet_jump, columns_jump, rows_jump):
         super().__init__(group1, group2)
         self.image = player_image_right
         self.rect = self.image.get_rect(topleft=pos)
@@ -154,7 +158,7 @@ class Player(pygame.sprite.Sprite):
         self.jump_speed = 25
         self.collision_sprites = collision_sprites
         self.sprites, self.visible_sprites = sprites, group1
-        self.cactus_pos, self.key_pos, self.heart_pos = cactus_pos, key_pos, heart_pos
+        self.cactus_pos, self.key_pos, self.heart_pos = cactus_pos, key_pos, pos_heart
         self.count, self.count_heart, self.count_key = 0, -1, 0
 
     def input(self):  # Получение информации о том какая из кнопок нажата / зажата
@@ -164,7 +168,7 @@ class Player(pygame.sprite.Sprite):
         if self.rect.x < width_x - tile_size // 10 and keys[pygame.K_RIGHT]:
             self.direction.x = 1
             if self.count_key == len(self.key_pos) \
-                    and self.rect.x == (width_x - tile_size // 10) - 10:
+                    and self.rect.x >= (width_x - tile_size // 10) - 10:
                 pygame.mixer.music.load('data/' + 'win.mp3')
                 pygame.mixer.music.play(0)
                 game_screen('win.png')
@@ -213,11 +217,10 @@ class Player(pygame.sprite.Sprite):
         if self.on_ground and self.direction.y != 0:
             self.on_ground = False
 
-    def draw_keys(self): #отрисовка кол-ва ключей которые еще не собраны
+    def draw_keys(self):  # отрисовка кол-ва ключей которые еще не собраны
         for i in range(3 - self.count_key):
             key = load_image('key.png')
-            screen.blit(key, ( i * tile_size, 0))
-        pygame.display.update()
+            screen.blit(key, (i * tile_size, 0))
 
     def horizontal_c(self):  # Горизонтальное столкновение героя
         collision = False
