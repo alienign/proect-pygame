@@ -8,7 +8,6 @@ FPS = 60
 clock = pygame.time.Clock()
 max_width = 0
 pygame.init()
-count_keys = 3
 
 
 class Background(pygame.sprite.Sprite):  # Фонновое изображение
@@ -162,7 +161,16 @@ class Player(pygame.sprite.Sprite):
         self.collision_sprites = collision_sprites
         self.sprites, self.visible_sprites = sprites, group1
         self.cactus_pos, self.key_pos, self.heart_pos = cactus_pos, key_pos, pos_heart
-        self.count, self.count_heart, self.count_key = 0, -1, 0
+        self.count = 0
+
+        with open('hearts_count.txt', 'w') as hearts_file:
+            hearts_file.write('0')
+        hearts_file.close
+
+        with open('keys_count.txt', 'w') as keys_file:
+            keys_file.write('0')
+        keys_file.close
+
 
     def input(self):  # Получение информации о том какая из кнопок нажата / зажата
         global width_x
@@ -170,7 +178,10 @@ class Player(pygame.sprite.Sprite):
 
         if self.rect.x < width_x - tile_size // 10 and keys[pygame.K_RIGHT]:
             self.direction.x = 1
-            if self.count_key == len(self.key_pos) \
+            file_keys = open('keys_count.txt')
+            number_keys_remained = int(file_keys.read())
+            file_keys.close()
+            if int(number_keys_remained) == len(self.key_pos) \
                     and self.rect.x >= (width_x - tile_size // 10) - 10:
                 pygame.mixer.music.load('data/' + 'win.mp3')
                 pygame.mixer.music.play(0)
@@ -206,15 +217,18 @@ class Player(pygame.sprite.Sprite):
                             self.direction.y = 0
                             self.on_ground = True
                             self.on_start_y = True
-        global count_keys
         for sprite in self.sprites.sprites():  # Собираем ключи
             sprite_pos = sprite.rect.x, sprite.rect.y
             for pos_k in self.key_pos:
                 if pos_k == sprite_pos:
                     if sprite.rect.colliderect(self.rect):
-                        self.count_key += 1
+                        file_keys = open('keys_count.txt')
+                        number_keys_remained = int(file_keys.read())
+                        file_keys.close()
+                        with open('keys_count.txt', 'w') as keys_file:
+                            keys_file.write(str(number_keys_remained + 1))
+                        keys_file.close
                         sprite.kill()
-                        count_keys -= 1
                         pygame.mixer.music.load('data/' + 'key.mp3')
                         pygame.mixer.music.play(0)
 
@@ -222,7 +236,10 @@ class Player(pygame.sprite.Sprite):
             self.on_ground = False
 
     def draw_keys(self):  # отрисовка кол-ва ключей которые еще не собраны
-        for i in range(3 - self.count_key):
+        file_keys = open('keys_count.txt')
+        number_keys_remained = int(file_keys.read())
+        file_keys.close()
+        for i in range(3 - number_keys_remained):
             key = load_image('key.png')
             screen.blit(key, (i * tile_size, 0))
 
@@ -248,11 +265,16 @@ class Player(pygame.sprite.Sprite):
                             self.rect.right = sprite.rect.right - 75
                             self.on_start_x = True
         if collision:  # Уменьшаем кол-во жизней
-            self.count_heart += 1
+            file_hearts = open('hearts_count.txt')
+            number_hearts_remained = int(file_hearts.read())
+            file_hearts.close()
+            with open('hearts_count.txt', 'w') as hearts_file:
+                hearts_file.write(str(number_hearts_remained + 1))
+            hearts_file.close
             for heart in self.sprites:
                 sprite_pos = heart.rect.x, heart.rect.y
-                if self.count_heart < 2:
-                    pos = self.heart_pos[self.count_heart]
+                if number_hearts_remained < 2:
+                    pos = self.heart_pos[number_hearts_remained]
                     if pos == sprite_pos:
                         heart.kill()
                         pygame.mixer.music.load('data/' + 'heart.mp3')
@@ -278,7 +300,10 @@ class Player(pygame.sprite.Sprite):
             self.rect = self.rect = self.image.get_rect(topleft=(self.x, self.y))
             for heart in self.sprites:  # Уменьшаем кол-во жизней
                 sprite_pos = heart.rect.x, heart.rect.y
-                if self.count_heart < 2:
+                file_hearts = open('hearts_count.txt')
+                number_hearts_remained = int(file_hearts.read())
+                file_hearts_close()
+                if int(number_hearts_remained) < 2:
                     pos = self.heart_pos[self.count_heart]
                     if pos == sprite_pos:
                         heart.kill()
@@ -286,7 +311,10 @@ class Player(pygame.sprite.Sprite):
                         pygame.mixer.music.play(0)
 
     def start(self):  # Возвращение на начальную позицию при столковении со спрайтом кактуса
-        if self.count_heart > 1:
+        file_hearts = open('hearts_count.txt')
+        number_hearts_remained = int(file_hearts.read())
+        file_hearts.close()
+        if int(number_hearts_remained) > 1:
             pygame.mixer.music.load('data/' + 'game_over.mp3')
             pygame.mixer.music.play(0)
             game_screen('game_over.png')
