@@ -81,8 +81,7 @@ class Level:
                     self.player = Player((x_x, y_y), self.visible_sprites, self.active_sprites,
                                          self.collision_sprites, self.sprites, cactus_pos, key_pos, heart_pos,
                                          load_image('running_character.png'), 8, 1,
-                                         load_image('running_character1.png'),
-                                         load_image('jumping_charachter.png'), 3, 1)
+                                         load_image('running_character1.png'))
                 if level[y][x] == '*':
                     for i in range(3):
                         if i > 0:
@@ -127,13 +126,19 @@ class Sprite(pygame.sprite.Sprite):
 
 player_image_right = load_image('hero1.png')
 player_image_left = load_image('hero2.png')
+player_image_jump1 = load_image('jump1.png')
+player_image_jump2 = load_image('jump2.png')
+player_image_jump3 = load_image('jump3.png')
+player_image_jump4 = load_image('jump4.png')
 did_ran_right = False
 did_ran_left = False
+did_ran_up = False
+jump = 0
 
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos, group1, group2, collision_sprites, sprites, cactus_pos, key_pos, pos_heart, sheet_run_right,
-                 columns_run, rows_run, sheet_run_left, sheet_jump, columns_jump, rows_jump):
+                 columns_run, rows_run, sheet_run_left):
         super().__init__(group1, group2)
         self.image = player_image_right
         self.rect = self.image.get_rect(topleft=pos)
@@ -149,10 +154,6 @@ class Player(pygame.sprite.Sprite):
         self.frames_run_left = []
         self.cut_sheet_left(sheet_run_left, columns_run, rows_run)
         self.cur_frame_run_left = 0
-
-        self.frames_jump = []
-        self.cut_sheet_jump(sheet_jump, columns_jump, rows_jump)
-        self.cur_frame_jump = 0
 
         self.direction = pygame.math.Vector2()
         self.speed = 10
@@ -258,8 +259,19 @@ class Player(pygame.sprite.Sprite):
                         pygame.mixer.music.play(0)
 
     def gravity(self):  # Гравитация
+        global did_ran_right
+        global did_ran_left
+        global jump
         self.direction.y += self.gravity_speed
         self.rect.y += self.direction.y
+        if self.on_ground is True and jump == 0:
+            self.image = player_image_right
+        elif self.on_ground is True and jump == 1:
+            self.image = player_image_left
+        elif self.on_ground is False and jump == 0:
+            self.image = player_image_jump2
+        elif self.on_ground is False and jump == 1:
+            self.image = player_image_jump4
         if self.rect.y >= self.y + tile_size * 20:  # Возвращение на начальную позицию при подении в яму
             self.count_heart += 1
             self.direction.y = -self.jump_speed // 2
@@ -308,19 +320,12 @@ class Player(pygame.sprite.Sprite):
                 self.frames_run_left.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def cut_sheet_jump(self, sheet, columns, rows):
-        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-                                sheet.get_height() // rows)
-        for j in range(rows):
-            for i in range(columns):
-                frame_location = (self.rect.w * i, self.rect.h * j)
-                self.frames_jump.append(sheet.subsurface(pygame.Rect(
-                    frame_location, self.rect.size)))
-
     def animate(self):
         keys = pygame.key.get_pressed()
         global did_ran_right
         global did_ran_left
+        global did_ran_up
+        global jump
         if keys[pygame.K_RIGHT]:
             self.cur_frame_run_right = (self.cur_frame_run_right + 1) % len(self.frames_run_right)
             self.image = self.frames_run_right[self.cur_frame_run_right]
@@ -333,9 +338,17 @@ class Player(pygame.sprite.Sprite):
             if did_ran_right:
                 self.image = player_image_right
                 did_ran_right = False
+                jump = 0
             if did_ran_left:
                 self.image = player_image_left
                 did_ran_left = False
+                jump = 1
+        if keys[pygame.K_UP] and jump == 0:
+            self.image = player_image_jump1
+            did_ran_up = True
+        elif keys[pygame.K_UP] and jump == 1:
+            self.image = player_image_jump3
+            did_ran_up = True
 
     def update(self):
         self.input()
@@ -425,6 +438,11 @@ start_screen('data/' + 'sound_start.mp3')
 
 def game_screen(name):  # Финальный экран
     global order
+    if name == 'win.png' and order < 2:
+        order += 1
+    elif name == 'win.png' and order >= 2:
+        order = 0
+        start_screen('data/' + 'won.mp3')
     fon = pygame.transform.scale(load_image(name), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     font = pygame.font.Font(None, 50)
@@ -438,11 +456,6 @@ def game_screen(name):  # Финальный экран
                                            text_w + 20, text_h + 20), 1)
     pygame.display.flip()
     start = False
-    if name == 'win.png' and order < 2:
-        order += 1
-    elif name == 'win.png' and order >= 2:
-        order = 0
-        start_screen('data/' + 'won.mp3')
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
