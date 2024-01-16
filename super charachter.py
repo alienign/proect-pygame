@@ -52,12 +52,12 @@ class Level:
     def load_level(self, filename):  # Загрузка уровней
         filename = "data/" + filename
         with open(filename, 'r') as mapFile:
-            level_map = [line.strip() for line in mapFile]
+            lvl_map = [line.strip() for line in mapFile]
 
         global max_width
-        max_width = max(map(len, level_map))
+        max_width = max(map(len, lvl_map))
 
-        return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+        return list(map(lambda x: x.ljust(max_width, '.'), lvl_map))
 
     def generate_level(self):  # Создание уровня
         level = self.load_level(level_map[self.order])
@@ -80,7 +80,8 @@ class Level:
                 if level[y][x] == '@':
                     self.player = Player((x_x, y_y), self.visible_sprites, self.active_sprites,
                                          self.collision_sprites, self.sprites, cactus_pos, key_pos, heart_pos,
-                                         load_image('running_character.png'), 8, 1, load_image('running_character1.png'),
+                                         load_image('running_character.png'), 8, 1,
+                                         load_image('running_character1.png'),
                                          load_image('jumping_charachter.png'), 3, 1)
                 if level[y][x] == '*':
                     for i in range(3):
@@ -137,6 +138,7 @@ class Player(pygame.sprite.Sprite):
         self.image = player_image_right
         self.rect = self.image.get_rect(topleft=pos)
         self.y = self.rect.y
+        self.x = self.rect.x
         self.on_ground = False
         self.on_start_y, self.on_start_x = False, False
 
@@ -214,6 +216,7 @@ class Player(pygame.sprite.Sprite):
                         count_keys -= 1
                         pygame.mixer.music.load('data/' + 'key.mp3')
                         pygame.mixer.music.play(0)
+
         if self.on_ground and self.direction.y != 0:
             self.on_ground = False
 
@@ -236,7 +239,6 @@ class Player(pygame.sprite.Sprite):
             for pos in self.cactus_pos:
                 if pos == sprite_pos:
                     if sprite.rect.colliderect(self.rect):
-                        self.count_heart += 1
                         collision = True
                         if self.direction.x < 0:
                             self.rect.left = sprite.rect.left + 75
@@ -245,6 +247,7 @@ class Player(pygame.sprite.Sprite):
                             self.rect.right = sprite.rect.right - 75
                             self.on_start_x = True
         if collision:  # Уменьшаем кол-во жизней
+            self.count_heart += 1
             for heart in self.sprites:
                 sprite_pos = heart.rect.x, heart.rect.y
                 if self.count_heart < 2:
@@ -260,8 +263,7 @@ class Player(pygame.sprite.Sprite):
         if self.rect.y >= self.y + tile_size * 20:  # Возвращение на начальную позицию при подении в яму
             self.count_heart += 1
             self.direction.y = -self.jump_speed // 2
-            self.rect = self.rect = self.image.get_rect(topleft=(0, 700))
-
+            self.rect = self.rect = self.image.get_rect(topleft=(self.x, self.y))
             for heart in self.sprites:  # Уменьшаем кол-во жизней
                 sprite_pos = heart.rect.x, heart.rect.y
                 if self.count_heart < 2:
@@ -280,12 +282,12 @@ class Player(pygame.sprite.Sprite):
             self.direction.y = -self.jump_speed // 2
             self.count += 1
             if self.count == 2:
-                self.rect = self.image.get_rect(topleft=(0, 700))
+                self.rect = self.image.get_rect(topleft=(self.x, self.y))
                 self.count = 0
             self.on_start_y = False
         if self.on_start_x:
             self.direction.y = -self.jump_speed // 2
-            self.rect = self.image.get_rect(topleft=(0, 700))
+            self.rect = self.image.get_rect(topleft=(self.x, self.y))
             self.on_start_x = False
 
     def cut_sheet_right(self, sheet, columns, rows):
@@ -394,7 +396,11 @@ class CameraGroup(pygame.sprite.Group):
                 self.display_surface.blit(sprite.image, sprite.rect.topleft - self.offset)
 
 
-def start_screen():
+def start_screen(name):  # Стартовый экран
+    pygame.mixer.music.load(name)
+    pygame.mixer.music.play(-1)
+    if name == 'data/' + 'sound_start.mp3':
+        pygame.mixer.music.set_volume(0.3)
     fon = pygame.transform.scale(load_image('fon.png'), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
     pygame.display.flip()
@@ -403,19 +409,21 @@ def start_screen():
             if event.type == pygame.QUIT:
                 terminate()
             elif event.type == pygame.KEYDOWN and pygame.key.get_pressed()[pygame.K_RETURN]:
+                pygame.mixer.music.pause()
                 return  # начинаем игру
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos_m = event.pos
                 if 453 < pos_m[0] < 1135 and 697 < pos_m[1] < 723:
+                    pygame.mixer.music.pause()
                     return
         pygame.display.flip()
         clock.tick(FPS)
 
 
-start_screen()
+start_screen('data/' + 'sound_start.mp3')
 
 
-def game_screen(name):
+def game_screen(name):  # Финальный экран
     global order
     fon = pygame.transform.scale(load_image(name), (WIDTH, HEIGHT))
     screen.blit(fon, (0, 0))
@@ -434,9 +442,7 @@ def game_screen(name):
         order += 1
     elif name == 'win.png' and order >= 2:
         order = 0
-        pygame.mixer.music.load('data/' + 'won.mp3')
-        pygame.mixer.music.play(0)
-        start_screen()
+        start_screen('data/' + 'won.mp3')
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -460,7 +466,6 @@ def game_screen(name):
                     clock.tick(FPS)
         pygame.display.flip()
         clock.tick(FPS)
-
 
 
 def terminate():
