@@ -8,7 +8,7 @@ FPS = 60
 clock = pygame.time.Clock()
 max_width = 0
 pygame.init()
-
+count_keys = 3
 
 class Background(pygame.sprite.Sprite):  # Фонновое изображение
     def __init__(self, image_file, location):
@@ -199,7 +199,7 @@ class Player(pygame.sprite.Sprite):
                             self.direction.y = 0
                             self.on_ground = True
                             self.on_start_y = True
-
+        global count_keys
         for sprite in self.sprites.sprites():  # Собираем ключи
             sprite_pos = sprite.rect.x, sprite.rect.y
             for pos_k in self.key_pos:
@@ -207,10 +207,17 @@ class Player(pygame.sprite.Sprite):
                     if sprite.rect.colliderect(self.rect):
                         self.count_key += 1
                         sprite.kill()
+                        count_keys -= 1
                         pygame.mixer.music.load('data/' + 'key.mp3')
                         pygame.mixer.music.play(0)
         if self.on_ground and self.direction.y != 0:
             self.on_ground = False
+
+    def draw_keys(self): #отрисовка кол-ва ключей которые еще не собраны
+        for i in range(3 - self.count_key):
+            key = load_image('key.png')
+            screen.blit(key, ( i * tile_size, 0))
+        pygame.display.update()
 
     def horizontal_c(self):  # Горизонтальное столкновение героя
         collision = False
@@ -325,7 +332,6 @@ class Player(pygame.sprite.Sprite):
                 self.image = player_image_left
                 did_ran_left = False
 
-
     def update(self):
         self.input()
         self.rect.x += self.direction.x * self.speed
@@ -334,6 +340,7 @@ class Player(pygame.sprite.Sprite):
         self.start()
         self.vertical_c()
         self.animate()
+        self.draw_keys()
 
 
 borders_camera = {
