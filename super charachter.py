@@ -177,7 +177,8 @@ class Player(pygame.sprite.Sprite):
             file_keys = open('keys_count.txt')
             num_keys = int(file_keys.read())
             if num_keys == len(self.key_pos) \
-                    and self.rect.x >= (width_x - tile_size // 10) - 10:
+                    and ((self.rect.x == (width_x - tile_size // 10) - self.speed)
+                         or self.rect.x == (width_x - tile_size // 10) - self.jump_speed // 2):
                 pygame.mixer.music.load('data/' + 'win.mp3')
                 pygame.mixer.music.play(0)
                 game_screen('win.png')
@@ -238,7 +239,7 @@ class Player(pygame.sprite.Sprite):
         file_keys.close()
         for i in range(3 - num_keys):
             key = load_image('key.png')
-            screen.blit(key, (i * tile_size, 0))
+            screen.blit(key, (i * tile_size // 2.5, 0))
 
     def horizontal_c(self):  # Горизонтальное столкновение героя
         collision = False
@@ -316,7 +317,7 @@ class Player(pygame.sprite.Sprite):
             self.rect = self.image.get_rect(topleft=(self.x, self.y))
             self.on_start_x = False
 
-    def cut_sheet_right(self, sheet, columns, rows):
+    def cut_sheet_right(self, sheet, columns, rows):  # Нарезка спрайтов движения впрво
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns, 
                                 sheet.get_height() // rows)
         for j in range(rows):
@@ -325,7 +326,7 @@ class Player(pygame.sprite.Sprite):
                 self.frames_run_right.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def cut_sheet_left(self, sheet, columns, rows):
+    def cut_sheet_left(self, sheet, columns, rows):  # Нарезка спрайтов движения влево
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
                                 sheet.get_height() // rows)
         for j in range(rows):
@@ -334,7 +335,7 @@ class Player(pygame.sprite.Sprite):
                 self.frames_run_left.append(sheet.subsurface(pygame.Rect(
                     frame_location, self.rect.size)))
 
-    def animate(self):
+    def animate(self):  # Анимация движения персонажа
         keys = pygame.key.get_pressed()
         global did_ran_right
         global did_ran_left
@@ -405,7 +406,7 @@ class CameraGroup(pygame.sprite.Group):
             self.camera_rect.right = player.rect.right
         if player.rect.top < self.camera_rect.top:
             if player.rect.top >= 700:
-                self.camera_rect.top = (player.rect.top - 650)
+                self.camera_rect.top = (player.rect.top - 700 + borders_camera['up'])
             else:
                 self.camera_rect.top = player.rect.top
         if player.rect.bottom > self.camera_rect.bottom:
@@ -420,7 +421,7 @@ class CameraGroup(pygame.sprite.Group):
             if sprite_pos in heart_pos:
                 for pos in heart_pos:
                     if pos == sprite_pos:
-                        self.display_surface.blit(sprite.image, (sprite.rect.topleft + self.offset // tile_size))
+                        self.display_surface.blit(sprite.image, (sprite.rect.topleft + self.offset // tile_size // 10))
             else:
                 self.display_surface.blit(sprite.image, sprite.rect.topleft - self.offset)
 
@@ -456,20 +457,20 @@ def game_screen(name):  # Финальный экран
     global order
     if name == 'win.png' and order < 2:
         order += 1
+        fon = pygame.transform.scale(load_image(name), (WIDTH, HEIGHT))
+        screen.blit(fon, (0, 0))
+        font = pygame.font.Font(None, 50)
+        text = font.render('CLICK ENTER TO START', True, (100, 255, 100))
+        text_x = 550
+        text_y = 900
+        text_w = text.get_width()
+        text_h = text.get_height()
+        screen.blit(text, (text_x, text_y))
+        pygame.draw.rect(screen, (0, 255, 0), (text_x - 10, text_y - 10,
+                                               text_w + 20, text_h + 20), 1)
     elif name == 'win.png' and order >= 2:
         order = 0
         start_screen('data/' + 'won.mp3')
-    fon = pygame.transform.scale(load_image(name), (WIDTH, HEIGHT))
-    screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 50)
-    text = font.render('CLICK ENTER TO START', True, (100, 255, 100))
-    text_x = 550
-    text_y = 900
-    text_w = text.get_width()
-    text_h = text.get_height()
-    screen.blit(text, (text_x, text_y))
-    pygame.draw.rect(screen, (0, 255, 0), (text_x - 10, text_y - 10,
-                                           text_w + 20, text_h + 20), 1)
     pygame.display.flip()
     start = False
     while True:
